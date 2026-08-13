@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MicroLearn — Daily Growth Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="css style.css">
+</head>
+
+<body>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">🧠</div>
+        <h1>MicroLearn</h1>
+      </div>
+      <p class="auth-tagline">Your daily growth companion</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchAuthTab('signup')">Create Account</button>
+      </div>
+
+      <div id="auth-error" class="auth-error"></div>
+
+      <div class="auth-form" id="login-form">
+        <input type="text" id="login-username" placeholder="Username" autocomplete="username">
+        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+        <button class="auth-link" onclick="switchAuthTab('forgot')">Forgot Password?</button>
+        <button class="auth-btn" onclick="handleLogin()">Sign In →</button>
+      </div>
+
+      <div class="auth-form" id="signup-form" style="display:none">
+        <input type="text" id="signup-name" placeholder="Your Name">
+        <input type="text" id="signup-username" placeholder="Username">
+        <input type="email" id="signup-email" placeholder="Gmail Address">
+        <input type="password" id="signup-password" placeholder="Password (min 4 chars)" autocomplete="new-password">
+        <button class="auth-btn" onclick="handleSignup()">Create Account →</button>
+      </div>
+
+      <div class="auth-form" id="forgot-form-1" style="display:none">
+        <button class="auth-back-btn" onclick="switchAuthTab('login')">← Back to Login</button>
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">Enter your registered Gmail address
+          to receive an OTP.</p>
+        <input type="email" id="forgot-email" placeholder="Your Gmail Address">
+        <button class="auth-btn" id="send-otp-btn" onclick="sendOTP()">Send OTP →</button>
+        <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-top: 12px; margin-bottom: 4px;">
+          Sign in with Google
+          to recover instantly</p>
+        <div id="google-recover-btn" class="google-btn-container"></div>
+      </div>
+
+      <div class="auth-form" id="forgot-form-2" style="display:none">
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">Enter the 6-digit code sent to your
+          Gmail.</p>
+        <input type="text" id="forgot-otp" placeholder="Enter 6-digit OTP" maxlength="6">
+        <button class="auth-btn" onclick="verifyOTP()">Verify OTP →</button>
+      </div>
+
+      <div class="auth-form" id="forgot-form-3" style="display:none">
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">Set your new account password.</p>
+        <input type="password" id="forgot-new-password" placeholder="New Password (min 4 chars)">
+        <button class="auth-btn" onclick="resetPassword()">Reset Password →</button>
+      </div>
+
+      <div class="auth-divider">or</div>
+      <button class="auth-guest-btn" onclick="continueAsGuest()">Continue as Guest (no account needed)</button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app">
+
+    <!-- NAVBAR -->
+    <nav>
+      <div class="nav-left">
+        <a class="nav-logo" href="#"><span>🧠</span> MicroLearn</a>
+        <div class="nav-tabs">
+          <button class="nav-tab active" onclick="switchTab('dashboard')">Dashboard</button>
+          <button class="nav-tab" onclick="switchTab('goals')">My Goals</button>
+          <button class="nav-tab" onclick="switchTab('analytics')">Analytics</button>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div class="streak-badge" id="nav-streak">🔥 0</div>
+        <div class="level-badge" id="nav-level">🧠 Lvl 1</div>
+        <button class="icon-btn" onclick="toggleDark()" title="Toggle theme">🌙</button>
+        <div class="nav-timer-container">
+          <div class="nav-timer" id="nav-timer-display" onclick="toggleNavTimerDropdown(event)">
+            <span>⏱️</span> <span id="nav-timer-text">25:00</span>
+          </div>
+          <div class="timer-dropdown" id="nav-timer-dropdown">
+            <div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-bottom:4px;">Set Focus Time
+            </div>
+            <div class="timer-grid-small">
+              <button class="timer-btn-small" onclick="setTimer(15)">15m</button>
+              <button class="timer-btn-small active" id="btn-25" onclick="setTimer(25)">25m</button>
+              <button class="timer-btn-small" onclick="setTimer(45)">45m</button>
+              <button class="timer-btn-small" onclick="setTimer(60)">60m</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-primary" id="nav-timer-start" style="flex:1; padding:8px; font-size:13px;"
+                onclick="toggleTimer()">Start</button>
+              <button class="btn-secondary" style="padding:8px; font-size:13px;" onclick="resetTimer()">Reset</button>
+            </div>
+          </div>
+        </div>
+        <button class="add-btn" onclick="openAddModal()">+ <span>Add Goal</span></button>
+        <div class="user-menu-container" style="position: relative;">
+          <div class="user-avatar" id="user-avatar-btn" onclick="toggleUserMenu(event)">
+            <span id="user-avatar-initials">G</span>
+          </div>
+          <div class="user-dropdown" id="user-dropdown">
+            <div class="user-dropdown-item" id="user-name-item">👤 Guest</div>
+            <div class="user-dropdown-item" onclick="showTab('dashboard')">📊 Dashboard</div>
+            <div class="user-dropdown-item" onclick="showTab('goals')">🎯 My Goals</div>
+            <div class="user-dropdown-item danger" onclick="handleLogout()">🚪 Logout</div>
+          </div>
+        </div>
+        <button class="icon-btn hamburger" onclick="toggleMobileMenu()">☰</button>
+      </div>
+    </nav>
+
+    <!-- MOBILE MENU -->
+    <div class="mobile-menu" id="mobile-menu">
+      <button class="nav-tab" onclick="switchTab('dashboard');closeMobileMenu()">Dashboard</button>
+      <button class="nav-tab" onclick="switchTab('goals');closeMobileMenu()">My Goals</button>
+      <button class="nav-tab" onclick="switchTab('analytics');closeMobileMenu()">Analytics</button>
+      <div style="display:flex;gap:10px;padding:8px 0;">
+        <div class="streak-badge mobile-show" id="nav-streak-mobile">🔥 0</div>
+        <div class="level-badge mobile-show" id="nav-level-mobile">🧠 Lvl 1</div>
+      </div>
+    </div>
+
+    <main>
+
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="dashboard-header">
+          <div class="dashboard-greeting">
+            <h2>Hello, <span id="greeting-name">Learner</span> 👋</h2>
+            <p id="greeting-date">Loading date…</p>
+          </div>
+          <div class="motivation-pill" id="motivation-pill">✨ Loading motivation…</div>
+        </div>
+
+        <!-- DAILY QUOTE -->
+        <div class="quote-card" id="quote-card" style="margin-bottom: 24px;">
+          <div class="quote-badge">“</div>
+          <div class="quote-text" id="daily-quote-text">Loading motivation...</div>
+          <div class="quote-author" id="daily-quote-author"></div>
+        </div>
+
+
+
+        <!-- XP Bar -->
+        <div class="xp-bar-container">
+          <div class="xp-level-display">
+            <div class="level-num" id="xp-level-num">1</div>
+            <div class="level-label">Level</div>
+          </div>
+          <div class="xp-info">
+            <div class="xp-label">
+              <span>XP Progress</span>
+              <span id="xp-fraction">0 / 100 XP</span>
+            </div>
+            <div class="xp-track">
+              <div class="xp-fill" id="xp-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card" data-emoji="🎯">
+            <div class="stat-card-label">Total Goals</div>
+            <div class="stat-card-value" id="stat-total">0</div>
+            <div class="stat-card-sub">all time</div>
+          </div>
+          <div class="stat-card" data-emoji="✅">
+            <div class="stat-card-label">Done Today</div>
+            <div class="stat-card-value" id="stat-today">0</div>
+            <div class="stat-card-sub" id="stat-today-sub">of 0 goals</div>
+          </div>
+          <div class="stat-card" data-emoji="🔥">
+            <div class="stat-card-label">Best Streak</div>
+            <div class="stat-card-value" id="stat-streak">0</div>
+            <div class="stat-card-sub">days</div>
+          </div>
+          <div class="stat-card" data-emoji="📈">
+            <div class="stat-card-label">Weekly Rate</div>
+            <div class="stat-card-value" id="stat-weekly">0%</div>
+            <div class="stat-card-sub">completion</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Layout -->
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; align-items: start; margin-top: 32px;">
+          <!-- Main Column -->
+          <div style="display:flex; flex-direction:column; gap:24px;">
+            <!-- Today Goals -->
+            <div class="section-header">
+              <div class="section-title">🎯 Today's Goals</div>
+              <a class="section-action" onclick="switchTab('goals')">View all →</a>
+            </div>
+            <div class="today-goals-frame">
+              <div class="today-goals" id="today-goals-list"></div>
+            </div>
+
+          </div>
+
+          <!-- Side Column -->
+          <div style="display:flex; flex-direction:column; gap:24px;">
+            <!-- Monthly Tracker (Replaced Graph) -->
+            <div class="section-header" style="justify-content: center;">
+              <div class="section-title" id="heatmap-title">Monthly Tracker</div>
+            </div>
+            <div class="heatmap-container">
+              <div id="heatmap-grid"></div>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+
+      <!-- GOALS PAGE -->
+      <div class="page" id="page-goals">
+        <div
+          style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;">My Goals</h2>
+            <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">Track and manage your learning journey</p>
+          </div>
+        </div>
+        <div class="goals-controls">
+          <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+          <button class="filter-btn" data-filter="coding" onclick="setFilter('coding',this)">💻 Coding</button>
+          <button class="filter-btn" data-filter="reading" onclick="setFilter('reading',this)">📚 Reading</button>
+          <button class="filter-btn" data-filter="fitness" onclick="setFilter('fitness',this)">🏃 Fitness</button>
+          <button class="filter-btn" data-filter="design" onclick="setFilter('design',this)">🎨 Design</button>
+          <button class="filter-btn" data-filter="other" onclick="setFilter('other',this)">⭐ Other</button>
+          <button class="mark-all-btn" onclick="markAllComplete()">✅ Mark All Complete</button>
+        </div>
+        <div class="goals-grid" id="goals-grid"></div>
+      </div>
+
+      <!-- ANALYTICS PAGE -->
+      <div class="page" id="page-analytics">
+        <div style="margin-bottom:28px;">
+          <h2 style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;">Analytics</h2>
+          <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">Deep dive into your learning patterns</p>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+          <div class="stat-card" data-emoji="🏆">
+            <div class="stat-card-label">Total XP</div>
+            <div class="stat-card-value" id="an-xp">0</div>
+            <div class="stat-card-sub">experience points</div>
+          </div>
+          <div class="stat-card" data-emoji="📅">
+            <div class="stat-card-label">Active Days</div>
+            <div class="stat-card-value" id="an-days">0</div>
+            <div class="stat-card-sub">days with activity</div>
+          </div>
+          <div class="stat-card" data-emoji="✅">
+            <div class="stat-card-label">Total Completed</div>
+            <div class="stat-card-value" id="an-total">0</div>
+            <div class="stat-card-sub">all-time tasks done</div>
+          </div>
+          <div class="stat-card" data-emoji="💪">
+            <div class="stat-card-label">Completion Rate</div>
+            <div class="stat-card-value" id="an-rate">0%</div>
+            <div class="stat-card-sub">overall</div>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-top:8px;">
+          <div class="section-title">Goals Breakdown</div>
+        </div>
+        <div id="analytics-goals" style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px;"></div>
+
+        <div class="section-header" style="justify-content: center; margin-top: 32px;">
+          <div class="section-title" style="font-weight: 800; font-size: 20px;">30-Day Activity</div>
+        </div>
+        <div class="weekly-chart">
+          <div id="bar-chart-30"></div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /#app -->
+
+  <!-- ADD GOAL MODAL -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <h3 id="modal-title">Add New Goal</h3>
+      <div class="form-field">
+        <label>Goal Title</label>
+        <input type="text" id="goal-title-input" placeholder="e.g. Learn React Hooks">
+      </div>
+      <div class="form-field">
+        <label>Category</label>
+        <div class="cat-grid">
+          <div class="cat-opt selected" data-cat="coding" onclick="selectCat('coding',this)"><span
+              class="cat-icon">💻</span>Coding</div>
+          <div class="cat-opt" data-cat="reading" onclick="selectCat('reading',this)"><span
+              class="cat-icon">📚</span>Reading</div>
+          <div class="cat-opt" data-cat="fitness" onclick="selectCat('fitness',this)"><span
+              class="cat-icon">🏃</span>Fitness</div>
+          <div class="cat-opt" data-cat="design" onclick="selectCat('design',this)"><span
+              class="cat-icon">🎨</span>Design</div>
+          <div class="cat-opt" data-cat="other" onclick="selectCat('other',this)"><span class="cat-icon">⭐</span>Other
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="editing-goal-id">
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveGoal()">Save Goal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLTIP -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="javascript.js"></script>
+</body>
+
+</html>
