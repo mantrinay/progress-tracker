@@ -1,4 +1,4 @@
 ﻿# progress-tracker
 
-track the progresses of the user by guiding them  go this this web application for all user
+track the progresses of the user by guiding them  go this this web application for all user 
  
